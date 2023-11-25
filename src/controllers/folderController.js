@@ -15,4 +15,4 @@ else{
         response = subfolderService(req);
     }
 }
-module.exports = response;
+export default response;

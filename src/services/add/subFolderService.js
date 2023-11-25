@@ -1,7 +1,6 @@
 
 const Folder = require('../../models/folder');
 
-//create the folders table if does not exist already 
 pool.query(`
   CREATE TABLE IF NOT EXISTS folders (
     id SERIAL PRIMARY KEY,
@@ -16,17 +15,17 @@ const folder = async (req, res) => {
     const { parentfolderId, folderName, userId} = req.body;
   
     try {
-      // Check if the folder name is provided
+    
       if (!folderName) {
         return res.status(400).json({ error: 'Folder name is required' });
       }
   
-      // Check if the user ID is provided
+      
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }
   
-      // Check if the folder name is unique for the user
+
       const folderCheckQuery = 'SELECT * FROM folders WHERE parentfolder_id = $1 AND name = $2 AND user_id = $3';
       const folderCheckValues = [parentfolderId, folderName, userId];
       const folderCheckResult = await pool.query(folderCheckQuery, folderCheckValues);
@@ -35,20 +34,20 @@ const folder = async (req, res) => {
         return res.status(400).json({ error: 'Folder with the same name already exists for this user' });
       }
 
-      //getting parent path
-      let parentpath = 'SELECT path FROM folders WHERE id=parentfolderId';
+      let parentpath = `SELECT path FROM folders WHERE id=${parentfolderId}`;
 
-      // Generate a pre-signed URL for file upload to S3
+      
+      let newfolder = await Folder.create({folderName, root, userId, path:`xyz`});//setting a random path
       const s3Params = {
         Bucket: 'bucket_name',
-        Key: `${parentpath}/folder_${newfolder.id}`, // Modify the Key as needed
-        Expires: 60, // URL expiration time in seconds
-        ContentType: 'application/octet-stream', // Set the content type based on your file type
+        Key: `${parentpath}/folder_${newfolder.id}`, 
+        Expires: 60, 
+        ContentType: 'application/octet-stream', 
       };
 
-      // Insert the new folder into the database
+    
       let path = s3Params.get(Key);
-      const newfolder = await Folder.create({folderName, parentfolderId, user_id, path});
+      newfolder = await Folder.create({folderName, parentfolderId, user_id, path});
   
       const uploadUrl = await s3.getSignedUrlPromise('putObject', s3Params);
   

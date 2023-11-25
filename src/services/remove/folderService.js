@@ -2,24 +2,14 @@
 const Folder = require('../../models/folder');
 const pool = require('../config/databse');
 
-//create the files table if does not exist already 
-//create the folders table if does not exist already 
-pool.query(`
-  CREATE TABLE IF NOT EXISTS folders (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    parentfolder_id INT NOT NULL,
-    user_id INT NOT NULL,
-    path VARCHAR NOT NULL
-  )
-`).then(() => console.log('Folder table created'));
 
 
+try{ if("SHOW TABLES LIKE folders"){
 router.delete('/:folderId', async (req, res) => {
     const folderId = req.params.folderId;
   
     try {
-      // Retrieve file metadata from the database
+      
       const getFolderQuery = 'SELECT * FROM folders WHERE id = $1';
       const getFolderValues = [folderId];
       const folderData = await pool.query(getFolderQuery, getFolderValues);
@@ -38,7 +28,6 @@ router.delete('/:folderId', async (req, res) => {
   
       await s3.deleteObject(s3Params).promise();
   
-      // Remove folder metadata from the database
       const deleteFolderQuery = 'DELETE FROM folders WHERE id = $1 RETURNING *';
       const deleteFolderValues = [folderId];
       const deletedFolder = await pool.query(deleteFileQuery, deleteFileValues);
@@ -57,16 +46,27 @@ router.delete('/:folderId', async (req, res) => {
       }
 
       //removing data of sub folders in the deleted folder
-      const subfolders = 'SELECT * FROM folders WHERE parentfolder_id = folderId';
-      const deleteSubfolders = 'DELETE FROM folders WHERE id IN $1 RETURNING *';
-      const delfolders = [subfolders];
-      const deletedSubFolders = await pool.query(deleteSubfolders, delfolders);
-      for(let i = 0; i < deletedSubFolders.length(); i++){
-        let s3Param = {
+      deleteSubFolders(parent_id)
+      async function deleteSubFolders(folder_id){
+        const subfolders = 'SELECT * FROM folders WHERE parentfolder_id = folderId';
+
+        if(subfolders.length() != 0){
+          //recursion
+          for(let i = 0; i < subfolders.length(); i++){
+            deleteSubFolders(subfolders[i].id);
+          }
+        }
+        const deleteSubfolders = 'DELETE FROM folders WHERE id IN $1 RETURNING *';
+        const delfolders = [subfolders];
+        const deletedSubFolders = await pool.query(deleteSubfolders, delfolders);
+        for(let i = 0; i < deletedSubFolders.length(); i++){
+          let s3Param = {
             Bucket: 'bucket_name',
-            Key: `${i.path}`, 
-          };
-        await s3.deleteObject(s3Param).promise();
+            Key: `${deletedSubFolders[i].path}`, 
+            };
+          await s3.deleteObject(s3Param).promise();
+        }
+        return;
       }
 
       res.status(200).json({ message: 'Folder deleted successfully', deletedFolder: deletedFolder.rows[0] });
@@ -76,6 +76,10 @@ router.delete('/:folderId', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+}
+}
+catch{
+  res.status(400).json({message: "No such folder!"})
+}
 
-
-  module.exports = router;
+export default router;

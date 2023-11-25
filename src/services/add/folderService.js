@@ -2,7 +2,6 @@
 const Folder = require('../../models/folder');
 const pool = require('../config/databse');
 
-//create the folders table if does not exist already 
 pool.query(`
   CREATE TABLE IF NOT EXISTS folders (
     id SERIAL PRIMARY KEY,
@@ -17,17 +16,15 @@ const folder = async (req, res) => {
     const { folderName, userId} = req.body;
   
     try {
-      // Check if the folder name is provided
+  
       if (!folderName) {
         return res.status(400).json({ error: 'Folder name is required' });
       }
   
-      // Check if the user ID is provided
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }
   
-      // Check if the folder name is unique for the user
       const folderCheckQuery = 'SELECT * FROM folders WHERE name = $1 AND user_id = $2';
       const folderCheckValues = [folderName, userId];
       const folderCheckResult = await pool.query(folderCheckQuery, folderCheckValues);
@@ -36,16 +33,18 @@ const folder = async (req, res) => {
         return res.status(400).json({ error: 'Folder with the same name already exists for this user' });
       }
       const root = 0;
-      // Insert the new folder into the database, 0 is the id of root
+      
+      let newfolder = await Folder.create({folderName, root, userId, path:`xyz`});//setting a random path
       let path = `user_${userId}/folder_${newfolder.id}`;
-      const newfolder = await Folder.create({folderName, root, userId, path});
+      newfolder = pool.query(`UPDATE folders SET path = ${path} WHERE id = ${newfolder.id}`);
   
-      // Generate a pre-signed URL for file upload to S3
+  
+      
       const s3Params = {
         Bucket: 'bucket_name',
-        Key: `user_${userId}/folder_${newfolder.id}`, // Modify the Key as needed
-        Expires: 60, // URL expiration time in seconds
-        ContentType: 'application/octet-stream', // Set the content type based on your file type
+        Key: `user_${userId}/folder_${newfolder.id}`, 
+        Expires: 60, 
+        ContentType: 'application/octet-stream', 
       };
   
       const uploadUrl = await s3.getSignedUrlPromise('putObject', s3Params);

@@ -16,22 +16,19 @@ const file = async (req, res) => {
     const {parentfolderId, fileName, userId } = req.body;
   
     try {
-      // Check if the folder name is provided
+      
       if (!parentfolderId) {
         return res.status(400).json({ error: 'Parent folder is required' });
       }
   
-      // Check if the user ID is provided
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }
 
-      // Check if filename is provided
       if (!fileName) {
         return res.status(400).json({ error: 'File name is required' });
       }
-  
-      // Check if the folder name is unique for the user
+
       const fileCheckQuery = 'SELECT * FROM files WHERE name = $2 AND folder_id = $1 AND user_id = $3';
       const fileCheckValues = [parentfolderId, fileName, userId];
       const fileCheckResult = await pool.query(folderCheckQuery, folderCheckValues);
@@ -39,21 +36,18 @@ const file = async (req, res) => {
       if (fileCheckResult.rows.length > 0) {
         return res.status(400).json({ error: 'File in the given folder with the same name already exists for this user' });
       }
-      
-      //geting the parent path
+  
       const parentPath = pool.query('SELECT path FROM folders WHERE id = parentfolderId');
 
-      // Generate a pre-signed URL for file upload to S3
       const s3Params = {
         Bucket: 'bucket_name',
         Key: `${parentPath}/${fileName}`, 
-        Expires: 60, // URL expiration time in seconds
+        Expires: 60, 
         ContentType: 'application/octet-stream',
       };
   
       const uploadUrl = await s3.getSignedUrlPromise('putObject', s3Params);
   
-      // Insert the new file into the database
       let path = `${parentPath}/${fileName}`;
       const newfile = await File.create({fileName, parentfolderId, userId, path});
   

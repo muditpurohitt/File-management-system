@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { folderController } = require('../controllers/folderController');
+const { updateFolderController } = require('../controllers/renameFolderController');
+const { removeFolderController } = require('../controllers/removeFolderController');
 const { authenticateJwt } = require("../middleware/authMiddleware");
 
 router.post('/add', authenticateJwt, folderController);

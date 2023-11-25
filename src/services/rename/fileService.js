@@ -1,28 +1,18 @@
 const File = require('../../models/file');
 const pool = require('../config/databse');
 
-//create the files table if does not exist already 
-pool.query(`
-  CREATE TABLE IF NOT EXISTS files (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    folder_id INT NOT NULL,
-    user_id INT NOT NULL,
-    path VARCHAR NOT NULL
-  )
-`).then(() => console.log('File table created'));
-
+try{if("SHOW TABLES LIKE files"){
 router.put('/:fileId', async (req, res) => {
     const fileId = req.params.fileId;
     const { newFileName } = req.body;
   
     try {
-      // Check if the new file name is provided
+      
       if (!newFileName) {
         return res.status(400).json({ error: 'New file name is required' });
       }
   
-      // Retrieve file metadata from the database
+      
       const getFileQuery = 'SELECT * FROM files WHERE id = $1';
       const getFileValues = [fileId];
       const fileData = await pool.query(getFileQuery, getFileValues);
@@ -33,13 +23,11 @@ router.put('/:fileId', async (req, res) => {
   
       const { name, folder_id, user_id, path } = fileData.rows[0];
   
-      // Update file metadata in the database
       const updateFileQuery = 'UPDATE files SET name = $1 WHERE id = $2 RETURNING *';
       const updateFileValues = [newFileName, fileId];
       const updatedFile = await pool.query(updateFileQuery, updateFileValues);
   
-      // If the S3 object key includes the file name, update it in AWS S3
-      let parentpath = pool.query('SELECT path from folders WHERE id=folder_id')
+      let parentpath = pool.query(`SELECT path from folders WHERE id=${folder_id}`);
       const s3Params = {
         Bucket: 'your-s3-bucket-name',
         Key: `${parentpath}/${newFileName}`, 
@@ -55,5 +43,9 @@ router.put('/:fileId', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
-
+}
+}
+catch{
+  res.status(400).json({message: "No such file!"});
+}
   module.exports = router;
