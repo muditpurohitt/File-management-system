@@ -17,7 +17,7 @@ seperate files are created to comply with SRP AND OCP.
 
 - **Backend**: Node.js, Express.js, PostgreSQL, AWS S3
 - **Authentication**: JSON Web Tokens (JWT)
-- **Encryptiont**: Bcrypt
+- **Encryption**: Bcrypt
 
 ## Project Structure
 
@@ -48,8 +48,7 @@ seperate files are created to comply with SRP AND OCP.
    ```bash
    cd File-management-system
    npm install
-   
-  (install all the necessary dependencies)
+  
     
 3. **Start the server**
    ```bash
